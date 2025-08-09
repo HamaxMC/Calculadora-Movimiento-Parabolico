@@ -772,6 +772,258 @@
             return lines.join('\n');
         }
 
+        // --- Canvas drawing and animation ---
+        function drawAxes(ctx, W, H, pad, maxX, maxY, scaleX, scaleY) {
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 0.5;
+            
+            // Vertical grid lines
+            const xStep = maxX > 20 ? 10 : maxX > 10 ? 5 : maxX > 5 ? 2 : 1;
+            for (let x = 0; x <= maxX; x += xStep) {
+                const cx = pad + x * scaleX;
+                ctx.beginPath();
+                ctx.moveTo(cx, H - pad);
+                ctx.lineTo(cx, pad);
+                ctx.stroke();
+                
+                // X axis labels
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '10px Inter, Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(x.toString(), cx, H - pad + 15);
+            }
+            
+            // Horizontal grid lines
+            const yStep = maxY > 20 ? 10 : maxY > 10 ? 5 : maxY > 5 ? 2 : 1;
+            for (let y = 0; y <= maxY; y += yStep) {
+                const cy = H - pad - y * scaleY;
+                ctx.beginPath();
+                ctx.moveTo(pad, cy);
+                ctx.lineTo(W - pad, cy);
+                ctx.stroke();
+                
+                // Y axis labels
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.textAlign = 'right';
+                ctx.fillText(y.toString(), pad - 10, cy + 4);
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1.5;
+            
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(pad, H - pad);
+            ctx.lineTo(W - pad, H - pad);
+            ctx.stroke();
+            
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(pad, H - pad);
+            ctx.lineTo(pad, pad);
+            ctx.stroke();
+            
+            // Axis labels
+            ctx.fillStyle = '#f9fafb';
+            ctx.font = '12px Inter, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Distancia (m)', W / 2, H - 10);
+            ctx.save();
+            ctx.translate(20, H / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Altura (m)', 0, 0);
+            ctx.restore();
+        }
+
+        function drawTrajectory(ph) {
+            ctx.clearRect(0, 0, trajCanvas.width, trajCanvas.height);
+
+            const pad = 40;
+            const W = trajCanvas.width, H = trajCanvas.height;
+            const maxX = Math.max(ph.range * 1.05, 1);
+            const maxY = Math.max(ph.hMax * 1.3, 1);
+            const scaleX = (W - pad * 2) / maxX;
+            const scaleY = (H - pad * 2) / maxY;
+
+            // Draw axes and grid
+            drawAxes(ctx, W, H, pad, maxX, maxY, scaleX, scaleY);
+
+            // draw ground
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.fillRect(0, H - pad, W, pad);
+
+            // draw curve
+            ctx.beginPath();
+            for (let i = 0; i <= 100; i++) {
+                const t = (i / 100) * ph.tTotal;
+                const x = ph.v0x * t;
+                const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
+                const cx = pad + x * scaleX;
+                const cy = H - pad - y * scaleY;
+                if (i === 0) ctx.moveTo(cx, cy);
+                else ctx.lineTo(cx, cy);
+            }
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#3b82f6';
+            ctx.stroke();
+
+            // draw launch point
+            ctx.beginPath();
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2;
+            ctx.arc(pad, H - pad - ph.y0 * scaleY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Label launch point
+            ctx.fillStyle = '#f9fafb';
+            ctx.font = '12px Inter, Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Inicio', pad + 10, H - pad - ph.y0 * scaleY + 5);
+
+            // draw range marker
+            const rangeX = pad + ph.range * scaleX;
+            const rangeY = H - pad;
+            ctx.beginPath();
+            ctx.moveTo(rangeX, rangeY - 15);
+            ctx.lineTo(rangeX, rangeY);
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            // Range label
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.textAlign = 'center';
+            ctx.fillText('Alcance', rangeX, rangeY - 20);
+
+            if (!isSemiparabolic) {
+                // draw max height marker
+                const maxHeightX = pad + (ph.v0x * ph.tUp) * scaleX;
+                const maxHeightY = H - pad - ph.hMax * scaleY;
+                
+                // Dotted line to ground
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(maxHeightX, maxHeightY);
+                ctx.lineTo(maxHeightX, H - pad);
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Horizontal line
+                ctx.beginPath();
+                ctx.moveTo(pad, maxHeightY);
+                ctx.lineTo(maxHeightX, maxHeightY);
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.stroke();
+                
+                // Max height point
+                ctx.beginPath();
+                ctx.arc(maxHeightX, maxHeightY, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fill();
+                
+                // Max height label
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.textAlign = 'right';
+                ctx.fillText('Altura máxima', maxHeightX - 10, maxHeightY - 10);
+            }
+            
+        }
+
+        function animateProjectile() {
+            cancelAnimationFrame(animId);
+            const ph = computePhysics();
+            const pad = 40;
+            const W = trajCanvas.width, H = trajCanvas.height;
+            const maxX = Math.max(ph.range * 1.05, 1);
+            const maxY = Math.max(ph.hMax * 1.3, 1);
+            const scaleX = (W - pad * 2) / maxX;
+            const scaleY = (H - pad * 2) / maxY;
+            let start = null;
+
+            function step(ts) {
+                if (!start) start = ts;
+                const elapsed = (ts - start) / 1000;
+                let t = elapsed % ph.tTotal;
+
+                drawTrajectory(ph);
+
+                const x = ph.v0x * t;
+                const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
+                const cx = pad + x * scaleX;
+                const cy = H - pad - y * scaleY;
+                
+                // Calculate current velocity components
+                const vx = ph.v0x;
+                const vy = ph.v0y - ph.g * t;
+                const v = Math.hypot(vx, vy);
+
+                // draw velocity vector
+                const vScale = 0.5; // Scale factor for velocity vector
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + vx * vScale, cy - vy * vScale);
+                ctx.strokeStyle = 'rgba(255, 100, 100, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // draw velocity components
+                ctx.setLineDash([2, 2]);
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + vx * vScale, cy);
+                ctx.strokeStyle = 'rgba(100, 255, 100, 0.6)';
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx, cy - vy * vScale);
+                ctx.strokeStyle = 'rgba(100, 100, 255, 0.6)';
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // draw projectile
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+                ctx.lineWidth = 2.5;
+                ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // info bubble
+                ctx.fillStyle = '#f9fafb';
+                ctx.font = '12px Inter, Arial';
+                ctx.textAlign = 'left';
+                
+                // Position info
+                const infoX = cx + 15;
+                let infoY = cy - 30;
+                ctx.fillText(`t = ${roundSmart(t)} s`, infoX, infoY);
+                ctx.fillText(`x = ${roundSmart(x)} m`, infoX, infoY + 15);
+                ctx.fillText(`y = ${roundSmart(y)} m`, infoX, infoY + 30);
+                
+                // Velocity info
+                infoY = cy + 20;
+                if (cy + 60 > H) infoY = cy - 80; // Adjust position if near bottom
+                ctx.fillText(`v = ${roundSmart(v)} m/s`, infoX, infoY);
+                ctx.fillText(`vx = ${roundSmart(vx)} m/s`, infoX, infoY + 15);
+                ctx.fillText(`vy = ${roundSmart(vy)} m/s`, infoX, infoY + 30);
+
+                if (animRunning) {
+                    animId = requestAnimationFrame(step);
+                }
+            }
+
+            animId = requestAnimationFrame(step);
+        }
+
         function computeAll() {
             const ph = computePhysics();
 
@@ -815,118 +1067,6 @@
             }
 
             drawTrajectory(ph);
-        }
-
-        // --- Canvas drawing and animation ---
-        function drawTrajectory(ph) {
-            ctx.clearRect(0, 0, trajCanvas.width, trajCanvas.height);
-
-            const pad = 40;
-            const W = trajCanvas.width, H = trajCanvas.height;
-            const maxX = Math.max(ph.range, 1);
-            const maxY = Math.max(ph.hMax * 1.2, 1);
-            const scaleX = (W - pad * 2) / maxX;
-            const scaleY = (H - pad * 2) / maxY;
-
-            // draw ground
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            ctx.fillRect(0, H - pad, W, pad);
-
-            // axis labels
-            ctx.fillStyle = '#f9fafb';
-            ctx.font = '12px Inter, Arial';
-            ctx.fillText('x (m)', W - 50, H - 10);
-            ctx.fillText('y (m)', 10, 20);
-
-            // draw curve
-            ctx.beginPath();
-            for (let i = 0; i <= 100; i++) {
-                const t = (i / 100) * ph.tTotal;
-                const x = ph.v0x * t;
-                const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
-                const cx = pad + x * scaleX;
-                const cy = H - pad - y * scaleY;
-                if (i === 0) ctx.moveTo(cx, cy);
-                else ctx.lineTo(cx, cy);
-            }
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = '#3b82f6';
-            ctx.stroke();
-
-            // draw launch point
-            ctx.beginPath();
-            ctx.fillStyle = '#ffffff';
-            ctx.strokeStyle = '#3b82f6';
-            ctx.lineWidth = 2;
-            ctx.arc(pad, H - pad - ph.y0 * scaleY, 6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-
-            // draw range marker
-            const rangeX = pad + ph.range * scaleX;
-            const rangeY = H - pad;
-            ctx.beginPath();
-            ctx.moveTo(rangeX, rangeY);
-            ctx.lineTo(rangeX, rangeY - 8);
-            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-            ctx.lineWidth = 1.2;
-            ctx.stroke();
-
-            if (!isSemiparabolic) {
-                // draw max height marker
-                const maxHeightX = pad + (ph.v0x * ph.tUp) * scaleX;
-                const maxHeightY = H - pad - ph.hMax * scaleY;
-                ctx.beginPath();
-                ctx.moveTo(maxHeightX - 8, maxHeightY);
-                ctx.lineTo(maxHeightX + 8, maxHeightY);
-                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-                ctx.stroke();
-            }
-        }
-
-        function animateProjectile() {
-            cancelAnimationFrame(animId);
-            const ph = computePhysics();
-            const pad = 40;
-            const W = trajCanvas.width, H = trajCanvas.height;
-            const maxX = Math.max(ph.range, 1);
-            const maxY = Math.max(ph.hMax * 1.2, 1);
-            const scaleX = (W - pad * 2) / maxX;
-            const scaleY = (H - pad * 2) / maxY;
-            let start = null;
-
-            function step(ts) {
-                if (!start) start = ts;
-                const elapsed = (ts - start) / 1000;
-                let t = elapsed % ph.tTotal;
-
-                drawTrajectory(ph);
-
-                const x = ph.v0x * t;
-                const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
-                const cx = pad + x * scaleX;
-                const cy = H - pad - y * scaleY;
-
-                // draw projectile
-                ctx.beginPath();
-                ctx.fillStyle = 'rgba(59, 130, 246, 1)';
-                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
-                ctx.lineWidth = 2.5;
-                ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-
-                // info bubble
-                ctx.fillStyle = '#f9fafb';
-                ctx.font = '12px Inter, Arial';
-                ctx.fillText('t=' + roundSmart(t) + ' s', cx + 10, cy - 10);
-
-                if (animRunning) {
-                    animId = requestAnimationFrame(step);
-                }
-            }
-
-            animId = requestAnimationFrame(step);
         }
 
         // Initial computation
