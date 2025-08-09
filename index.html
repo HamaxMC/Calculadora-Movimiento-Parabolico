@@ -379,6 +379,53 @@
         #steps::-webkit-scrollbar-thumb {
             background: rgba(59, 130, 246, 0.7);
         }
+
+        @media (max-width: 600px) {
+            .frame {
+                padding: 10px;
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .controls,
+            .card {
+                padding: 10px;
+            }
+
+            canvas {
+                height: 250px;
+                /* Altura reducida para móviles */
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .outputs {
+                grid-template-columns: 1fr;
+                /* Una columna en móviles */
+            }
+
+            .actions {
+                flex-direction: column;
+                /* Botones en columna */
+            }
+
+            .actions button {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+        }
+
+        /* Añade esto para manejar la orientación */
+        @media (max-width: 600px) and (orientation: landscape) {
+            canvas {
+                height: 200px;
+                /* Altura aún menor en horizontal */
+            }
+
+            .frame {
+                padding: 8px;
+            }
+        }
     </style>
 </head>
 
@@ -414,7 +461,7 @@
 
             <div class="field">
                 <label>Altura inicial (m)</label>
-                <input id="y0" type="number" step="any" value="0">
+                <input id="y0" type="number" step="any" value="10">
             </div>
 
             <div class="field row">
@@ -535,7 +582,7 @@
         })
         computeBtn.addEventListener('click', computeAll)
         resetBtn.addEventListener('click', () => {
-            v0El.value = 20; angleEl.value = 45; gEl.value = 9.8; y0El.value = 0;
+            v0El.value = 20; angleEl.value = 45; gEl.value = 9.8; y0El.value = 10;
             unitSelect.value = 'm/s'; unitLabel.textContent = 'm/s';
             queryType.value = 'time'; queryLabel.textContent = 'Tiempo (s)';
             queryValue.value = 1;
@@ -605,8 +652,8 @@
 
             if (isSemiparabolic) {
                 // Semiparabolic movement (horizontal launch)
-                const tTotal = Math.sqrt(2 * y0 / g);
-                const range = v0x * tTotal;
+                const tTotal = y0 > 0 ? Math.sqrt(2 * y0 / g) : 0;
+                const range = y0 > 0 ? v0x * tTotal : 0;
                 const hMax = y0; // Maximum height is the initial height
 
                 return {
@@ -617,7 +664,7 @@
                     hMax,
                     range,
                     vAtMaxHeight: v0x,
-                    impactAngle: toDeg(Math.atan(g * tTotal / v0x))
+                    impactAngle: y0 > 0 ? toDeg(Math.atan(g * tTotal / v0x)) : 90
                 };
             } else {
                 // Full parabolic movement
@@ -682,20 +729,32 @@
 
             lines.push('<div class="small">Tiempo de caída:</div>');
             if (isSemiparabolic) {
-                lines.push(`<div class="math-formula">$$t_{\\text{caída}} = \\sqrt{\\frac{2 y_0}{g}} = \\sqrt{\\frac{2 \\times ${formatSI(y0)}}{${formatSI(g)}}} = ${formatSI(tDown)}\\,\\mathrm{s}$$</div>`);
+                if (y0 > 0) {
+                    lines.push(`<div class="math-formula">$$t_{\\text{caída}} = \\sqrt{\\frac{2 y_0}{g}} = \\sqrt{\\frac{2 \\times ${formatSI(y0)}}{${formatSI(g)}}} = ${formatSI(tDown)}\\,\\mathrm{s}$$</div>`);
+                } else {
+                    lines.push(`<div class="math-formula">$$t_{\\text{caída}} = 0\\,\\mathrm{s} \\quad \\text{(no hay altura inicial)}$$</div>`);
+                }
             } else {
                 lines.push(`<div class="math-formula">$$t_{\\text{bajada}} = \\sqrt{\\frac{2 h_{\\max}}{g}} = \\sqrt{\\frac{2 \\times ${formatSI(hMax)}}{${formatSI(g)}}} = ${formatSI(tDown)}\\,\\mathrm{s}$$</div>`);
             }
 
             lines.push('<div class="small">Tiempo total de vuelo:</div>');
             if (isSemiparabolic) {
-                lines.push(`<div class="math-formula">$$T = t_{\\text{caída}} = ${formatSI(tTotal)}\\,\\mathrm{s}$$</div>`);
+                if (y0 > 0) {
+                    lines.push(`<div class="math-formula">$$T = t_{\\text{caída}} = ${formatSI(tTotal)}\\,\\mathrm{s}$$</div>`);
+                } else {
+                    lines.push(`<div class="math-formula">$$T = 0\\,\\mathrm{s} \\quad \\text{(no hay altura inicial)}$$</div>`);
+                }
             } else {
                 lines.push(`<div class="math-formula">$$T = t_{\\text{subida}} + t_{\\text{bajada}} = ${formatSI(tUp)} + ${formatSI(tDown)} = ${formatSI(tTotal)}\\,\\mathrm{s}$$</div>`);
             }
 
             lines.push('<div class="small">Alcance horizontal:</div>');
-            lines.push(`<div class="math-formula">$$R = v_{0x} T = ${formatSI(v0x)} \\times ${formatSI(tTotal)} = ${formatSI(range)}\\,\\mathrm{m}$$</div>`);
+            if (isSemiparabolic && y0 <= 0) {
+                lines.push(`<div class="math-formula">$$R = 0\\,\\mathrm{m} \\quad \\text{(no hay altura inicial)}$$</div>`);
+            } else {
+                lines.push(`<div class="math-formula">$$R = v_{0x} T = ${formatSI(v0x)} \\times ${formatSI(tTotal)} = ${formatSI(range)}\\,\\mathrm{m}$$</div>`);
+            }
 
             if (!isSemiparabolic) {
                 lines.push('<div class="small">Velocidad en altura máxima:</div>');
@@ -703,7 +762,7 @@
 
                 lines.push('<div class="small">Ángulo de impacto:</div>');
                 lines.push(`<div class="math-formula">$$\\phi = \\arctan\\left(\\frac{v_{0y} + g t_{\\text{bajada}}}{v_{0x}}\\right) = \\arctan\\left(\\frac{${formatSI(v0y)} + ${formatSI(g)} \\times ${formatSI(tDown)}}{${formatSI(v0x)}}\\right) = ${formatSI(impactAngle)}^\\circ$$</div>`);
-            } else {
+            } else if (y0 > 0) {
                 lines.push('<div class="small">Ángulo de impacto:</div>');
                 lines.push(`<div class="math-formula">$$\\phi = \\arctan\\left(\\frac{g t_{\\text{caída}}}{v_{0x}}\\right) = \\arctan\\left(\\frac{${formatSI(g)} \\times ${formatSI(tDown)}}{${formatSI(v0x)}}\\right) = ${formatSI(impactAngle)}^\\circ$$</div>`);
             }
@@ -711,19 +770,31 @@
             if (query) {
                 if (query.type === 'time') {
                     const t = query.value;
-                    const x = v0x * t;
-                    const y = y0 + v0y * t - 0.5 * g * t * t;
-                    const vx = v0x;
-                    const vy = v0y - g * t;
+                    const x = ph.v0x * t;
+                    const y = ph.y0 + ph.v0y * t - 0.5 * g * t * t;
+                    const vx = ph.v0x;
+                    const vy = ph.v0y - g * t;
                     const v = Math.hypot(vx, vy);
 
                     lines.push('<div class="small" style="margin-top:6px">Posición en el tiempo solicitado:</div>');
                     lines.push(`<div class="math-formula">$$t = ${formatSI(t)}\\,\\mathrm{s}$$</div>`);
                     lines.push(`<div class="math-formula">$$x(t) = v_{0x} t = ${formatSI(v0x)} \\times ${formatSI(t)} = ${formatSI(x)}\\,\\mathrm{m}$$</div>`);
-                    lines.push(`<div class="math-formula">$$y(t) = y_0 + v_{0y} t - \\frac{1}{2} g t^2 = ${formatSI(y0)} + ${formatSI(v0y)} \\times ${formatSI(t)} - 0.5 \\times ${formatSI(g)} \\times ${formatSI(t)}^2 = ${formatSI(y)}\\,\\mathrm{m}$$</div>`);
+                    if (isSemiparabolic && y0 <= 0) {
+                        lines.push(`<div class="math-formula">$$y(t) = 0\\,\\mathrm{m} \\quad \\text{(no hay altura inicial)}$$</div>`);
+                    } else {
+                        lines.push(`<div class="math-formula">$$y(t) = y_0 + v_{0y} t - \\frac{1}{2} g t^2 = ${formatSI(y0)} + ${formatSI(v0y)} \\times ${formatSI(t)} - 0.5 \\times ${formatSI(g)} \\times ${formatSI(t)}^2 = ${formatSI(y)}\\,\\mathrm{m}$$</div>`);
+                    }
                     lines.push(`<div class="math-formula">$$v_x(t) = v_{0x} = ${formatSI(vx)}\\,\\mathrm{m/s}$$</div>`);
-                    lines.push(`<div class="math-formula">$$v_y(t) = v_{0y} - g t = ${formatSI(v0y)} - ${formatSI(g)} \\times ${formatSI(t)} = ${formatSI(vy)}\\,\\mathrm{m/s}$$</div>`);
-                    lines.push(`<div class="math-formula">$$|v(t)| = \\sqrt{v_x(t)^2 + v_y(t)^2} = ${formatSI(v)}\\,\\mathrm{m/s}$$</div>`);
+                    if (isSemiparabolic && y0 <= 0) {
+                        lines.push(`<div class="math-formula">$$v_y(t) = 0\\,\\mathrm{m/s} \\quad \\text{(no hay altura inicial)}$$</div>`);
+                    } else {
+                        lines.push(`<div class="math-formula">$$v_y(t) = v_{0y} - g t = ${formatSI(v0y)} - ${formatSI(g)} \\times ${formatSI(t)} = ${formatSI(vy)}\\,\\mathrm{m/s}$$</div>`);
+                    }
+                    if (isSemiparabolic && y0 <= 0) {
+                        lines.push(`<div class="math-formula">$$|v(t)| = v_{0x} = ${formatSI(vx)}\\,\\mathrm{m/s}$$</div>`);
+                    } else {
+                        lines.push(`<div class="math-formula">$$|v(t)| = \\sqrt{v_x(t)^2 + v_y(t)^2} = ${formatSI(v)}\\,\\mathrm{m/s}$$</div>`);
+                    }
 
                 } else if (query.type === 'distance') {
                     const xq = query.value;
@@ -733,7 +804,11 @@
                     lines.push('<div class="small" style="margin-top:6px">Posición para distancia x dada:</div>');
                     lines.push(`<div class="math-formula">$$x = ${formatSI(xq)}\\,\\mathrm{m}$$</div>`);
                     lines.push(`<div class="math-formula">$$t = \\frac{x}{v_{0x}} = \\frac{${formatSI(xq)}}{${formatSI(ph.v0x)}} = ${formatSI(t)}\\,\\mathrm{s}$$</div>`);
-                    lines.push(`<div class="math-formula">$$y = y_0 + v_{0y} t - \\frac{1}{2} g t^2 = ${formatSI(ph.y0)} + ${formatSI(ph.v0y)} \\times ${formatSI(t)} - 0.5 \\times ${formatSI(ph.g)} \\times ${formatSI(t)}^2 = ${formatSI(y)}\\,\\mathrm{m}$$</div>`);
+                    if (isSemiparabolic && y0 <= 0) {
+                        lines.push(`<div class="math-formula">$$y = 0\\,\\mathrm{m} \\quad \\text{(no hay altura inicial)}$$</div>`);
+                    } else {
+                        lines.push(`<div class="math-formula">$$y = y_0 + v_{0y} t - \\frac{1}{2} g t^2 = ${formatSI(ph.y0)} + ${formatSI(ph.v0y)} \\times ${formatSI(t)} - 0.5 \\times ${formatSI(ph.g)} \\times ${formatSI(t)}^2 = ${formatSI(y)}\\,\\mathrm{m}$$</div>`);
+                    }
 
                 } else if (query.type === 'height') {
                     const yq = query.value;
@@ -777,7 +852,7 @@
             // Draw grid
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.lineWidth = 0.5;
-            
+
             // Vertical grid lines
             const xStep = maxX > 20 ? 10 : maxX > 10 ? 5 : maxX > 5 ? 2 : 1;
             for (let x = 0; x <= maxX; x += xStep) {
@@ -786,14 +861,14 @@
                 ctx.moveTo(cx, H - pad);
                 ctx.lineTo(cx, pad);
                 ctx.stroke();
-                
+
                 // X axis labels
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                 ctx.font = '10px Inter, Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(x.toString(), cx, H - pad + 15);
             }
-            
+
             // Horizontal grid lines
             const yStep = maxY > 20 ? 10 : maxY > 10 ? 5 : maxY > 5 ? 2 : 1;
             for (let y = 0; y <= maxY; y += yStep) {
@@ -802,29 +877,29 @@
                 ctx.moveTo(pad, cy);
                 ctx.lineTo(W - pad, cy);
                 ctx.stroke();
-                
+
                 // Y axis labels
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                 ctx.textAlign = 'right';
                 ctx.fillText(y.toString(), pad - 10, cy + 4);
             }
-            
+
             // Draw axes
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             ctx.lineWidth = 1.5;
-            
+
             // X axis
             ctx.beginPath();
             ctx.moveTo(pad, H - pad);
             ctx.lineTo(W - pad, H - pad);
             ctx.stroke();
-            
+
             // Y axis
             ctx.beginPath();
             ctx.moveTo(pad, H - pad);
             ctx.lineTo(pad, pad);
             ctx.stroke();
-            
+
             // Axis labels
             ctx.fillStyle = '#f9fafb';
             ctx.font = '12px Inter, Arial';
@@ -855,6 +930,32 @@
             ctx.fillStyle = 'rgba(255,255,255,0.1)';
             ctx.fillRect(0, H - pad, W, pad);
 
+            // Special case for semiparabolic with y0 = 0
+            if (isSemiparabolic && ph.y0 <= 0) {
+                ctx.beginPath();
+                ctx.moveTo(pad, H - pad);
+                ctx.lineTo(pad + ph.range * scaleX, H - pad);
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#3b82f6';
+                ctx.stroke();
+
+                // draw launch point
+                ctx.beginPath();
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 2;
+                ctx.arc(pad, H - pad, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Label launch point
+                ctx.fillStyle = '#f9fafb';
+                ctx.font = '12px Inter, Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('Inicio', pad + 10, H - pad + 5);
+                return;
+            }
+
             // draw curve
             ctx.beginPath();
             for (let i = 0; i <= 100; i++) {
@@ -878,7 +979,7 @@
             ctx.arc(pad, H - pad - ph.y0 * scaleY, 6, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
-            
+
             // Label launch point
             ctx.fillStyle = '#f9fafb';
             ctx.font = '12px Inter, Arial';
@@ -894,7 +995,7 @@
             ctx.strokeStyle = 'rgba(255,255,255,0.6)';
             ctx.lineWidth = 1.5;
             ctx.stroke();
-            
+
             // Range label
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
             ctx.textAlign = 'center';
@@ -904,7 +1005,7 @@
                 // draw max height marker
                 const maxHeightX = pad + (ph.v0x * ph.tUp) * scaleX;
                 const maxHeightY = H - pad - ph.hMax * scaleY;
-                
+
                 // Dotted line to ground
                 ctx.setLineDash([3, 3]);
                 ctx.beginPath();
@@ -914,26 +1015,25 @@
                 ctx.lineWidth = 1;
                 ctx.stroke();
                 ctx.setLineDash([]);
-                
+
                 // Horizontal line
                 ctx.beginPath();
                 ctx.moveTo(pad, maxHeightY);
                 ctx.lineTo(maxHeightX, maxHeightY);
                 ctx.strokeStyle = 'rgba(255,255,255,0.4)';
                 ctx.stroke();
-                
+
                 // Max height point
                 ctx.beginPath();
                 ctx.arc(maxHeightX, maxHeightY, 5, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
                 ctx.fill();
-                
+
                 // Max height label
                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
                 ctx.textAlign = 'right';
                 ctx.fillText('Altura máxima', maxHeightX - 10, maxHeightY - 10);
             }
-            
         }
 
         function animateProjectile() {
@@ -954,67 +1054,94 @@
 
                 drawTrajectory(ph);
 
-                const x = ph.v0x * t;
-                const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
-                const cx = pad + x * scaleX;
-                const cy = H - pad - y * scaleY;
-                
-                // Calculate current velocity components
-                const vx = ph.v0x;
-                const vy = ph.v0y - ph.g * t;
-                const v = Math.hypot(vx, vy);
+                // Special case for semiparabolic with y0 = 0
+                if (isSemiparabolic && ph.y0 <= 0) {
+                    const x = ph.v0x * t;
+                    const cx = pad + x * scaleX;
+                    const cy = H - pad;
 
-                // draw velocity vector
-                const vScale = 0.5; // Scale factor for velocity vector
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.lineTo(cx + vx * vScale, cy - vy * vScale);
-                ctx.strokeStyle = 'rgba(255, 100, 100, 0.8)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                // draw velocity components
-                ctx.setLineDash([2, 2]);
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.lineTo(cx + vx * vScale, cy);
-                ctx.strokeStyle = 'rgba(100, 255, 100, 0.6)';
-                ctx.stroke();
-                
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.lineTo(cx, cy - vy * vScale);
-                ctx.strokeStyle = 'rgba(100, 100, 255, 0.6)';
-                ctx.stroke();
-                ctx.setLineDash([]);
+                    // draw projectile
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                    ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+                    ctx.lineWidth = 2.5;
+                    ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
 
-                // draw projectile
-                ctx.beginPath();
-                ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-                ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
-                ctx.lineWidth = 2.5;
-                ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
+                    // info bubble
+                    ctx.fillStyle = '#f9fafb';
+                    ctx.font = '12px Inter, Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`t = ${roundSmart(t)} s`, cx + 15, cy - 15);
+                    ctx.fillText(`x = ${roundSmart(x)} m`, cx + 15, cy);
+                    ctx.fillText(`y = 0 m`, cx + 15, cy + 15);
+                    ctx.fillText(`v = ${roundSmart(ph.v0x)} m/s`, cx + 15, cy + 30);
+                    ctx.fillText(`vx = ${roundSmart(ph.v0x)} m/s`, cx + 15, cy + 45);
+                    ctx.fillText(`vy = 0 m/s`, cx + 15, cy + 60);
+                } else {
+                    const x = ph.v0x * t;
+                    const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
+                    const cx = pad + x * scaleX;
+                    const cy = H - pad - y * scaleY;
 
-                // info bubble
-                ctx.fillStyle = '#f9fafb';
-                ctx.font = '12px Inter, Arial';
-                ctx.textAlign = 'left';
-                
-                // Position info
-                const infoX = cx + 15;
-                let infoY = cy - 30;
-                ctx.fillText(`t = ${roundSmart(t)} s`, infoX, infoY);
-                ctx.fillText(`x = ${roundSmart(x)} m`, infoX, infoY + 15);
-                ctx.fillText(`y = ${roundSmart(y)} m`, infoX, infoY + 30);
-                
-                // Velocity info
-                infoY = cy + 20;
-                if (cy + 60 > H) infoY = cy - 80; // Adjust position if near bottom
-                ctx.fillText(`v = ${roundSmart(v)} m/s`, infoX, infoY);
-                ctx.fillText(`vx = ${roundSmart(vx)} m/s`, infoX, infoY + 15);
-                ctx.fillText(`vy = ${roundSmart(vy)} m/s`, infoX, infoY + 30);
+                    // Calculate current velocity components
+                    const vx = ph.v0x;
+                    const vy = ph.v0y - ph.g * t;
+                    const v = Math.hypot(vx, vy);
+
+                    // draw velocity vector
+                    const vScale = 0.5; // Scale factor for velocity vector
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + vx * vScale, cy - vy * vScale);
+                    ctx.strokeStyle = 'rgba(255, 100, 100, 0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // draw velocity components
+                    ctx.setLineDash([2, 2]);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + vx * vScale, cy);
+                    ctx.strokeStyle = 'rgba(100, 255, 100, 0.6)';
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx, cy - vy * vScale);
+                    ctx.strokeStyle = 'rgba(100, 100, 255, 0.6)';
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // draw projectile
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                    ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+                    ctx.lineWidth = 2.5;
+                    ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // info bubble
+                    ctx.fillStyle = '#f9fafb';
+                    ctx.font = '12px Inter, Arial';
+                    ctx.textAlign = 'left';
+
+                    // Position info
+                    const infoX = cx + 15;
+                    let infoY = cy - 30;
+                    ctx.fillText(`t = ${roundSmart(t)} s`, infoX, infoY);
+                    ctx.fillText(`x = ${roundSmart(x)} m`, infoX, infoY + 15);
+                    ctx.fillText(`y = ${roundSmart(y)} m`, infoX, infoY + 30);
+
+                    // Velocity info
+                    infoY = cy + 20;
+                    if (cy + 60 > H) infoY = cy - 80; // Adjust position if near bottom
+                    ctx.fillText(`v = ${roundSmart(v)} m/s`, infoX, infoY);
+                    ctx.fillText(`vx = ${roundSmart(vx)} m/s`, infoX, infoY + 15);
+                    ctx.fillText(`vy = ${roundSmart(vy)} m/s`, infoX, infoY + 30);
+                }
 
                 if (animRunning) {
                     animId = requestAnimationFrame(step);
@@ -1053,14 +1180,14 @@
             if (qType === 'time') {
                 const t = qVal;
                 const vx = ph.v0x;
-                const vy = ph.v0y - ph.g * t;
-                const v = Math.hypot(vx, vy);
+                const vy = isSemiparabolic && ph.y0 <= 0 ? 0 : ph.v0y - ph.g * t;
+                const v = isSemiparabolic && ph.y0 <= 0 ? vx : Math.hypot(vx, vy);
                 document.getElementById('vAt').textContent = formatSI(v);
             } else if (qType === 'distance') {
                 const t = qVal / ph.v0x;
                 const vx = ph.v0x;
-                const vy = ph.v0y - ph.g * t;
-                const v = Math.hypot(vx, vy);
+                const vy = isSemiparabolic && ph.y0 <= 0 ? 0 : ph.v0y - ph.g * t;
+                const v = isSemiparabolic && ph.y0 <= 0 ? vx : Math.hypot(vx, vy);
                 document.getElementById('vAt').textContent = formatSI(v);
             } else {
                 document.getElementById('vAt').textContent = '—';
@@ -1082,13 +1209,29 @@
         // Resize canvas to devicePixelRatio for crispness
         function fixCanvasDPR() {
             const dpr = window.devicePixelRatio || 1;
-            trajCanvas.width = Math.floor(trajCanvas.clientWidth * dpr);
+            const container = trajCanvas.parentElement;
+            const computedStyle = getComputedStyle(container);
+
+            // Calcula el ancho disponible restando paddings y bordes
+            const paddingX = parseFloat(computedStyle.paddingLeft) + parseFloat(computedStyle.paddingRight);
+            const borderX = parseFloat(computedStyle.borderLeftWidth) + parseFloat(computedStyle.borderRightWidth);
+            const availableWidth = container.clientWidth - paddingX - borderX;
+
+            // Establece las dimensiones del canvas
+            trajCanvas.width = Math.floor(availableWidth * dpr);
             trajCanvas.height = Math.floor(trajCanvas.clientHeight * dpr);
+            trajCanvas.style.width = `${availableWidth}px`;
+            trajCanvas.style.height = `${trajCanvas.clientHeight}px`;
+
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             computeAll();
         }
 
-        window.addEventListener('resize', fixCanvasDPR);
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(fixCanvasDPR, 100);
+        });
         fixCanvasDPR();
     </script>
 </body>
