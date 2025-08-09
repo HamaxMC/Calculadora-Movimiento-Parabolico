@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Movimiento Parabólico y Semiparabólico — Calculadora interactiva</title>
+
+    <!-- MathJax for math rendering -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea']
+            }
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.min.js"></script>
+
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --accent: rgba(59, 130, 246, 0.9);
+            --muted: #9ca3af;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #334155 100%);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+        }
+
+        .frame {
+            width: 100%;
+            max-width: 1100px;
+            border-radius: 20px;
+            padding: 26px;
+            backdrop-filter: blur(10px) saturate(120%);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 22px;
+        }
+
+        header {
+            grid-column: 1/-1;
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            color: var(--text-primary);
+        }
+
+        p.lead {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .controls {
+            padding: 14px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-primary);
+            margin-bottom: 6px
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        input[type=number],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        input[type=number]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .field {
+            margin-bottom: 12px
+        }
+
+        .small {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px
+        }
+
+        button {
+            cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: rgba(59, 130, 246, 1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        button.alt {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        button.alt:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent);
+        }
+
+        .right {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .card {
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1)
+        }
+
+        canvas {
+            width: 100%;
+            height: 320px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #1e293b, #0f172a);
+            display: block
+        }
+
+        .outputs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px
+        }
+
+        .formula {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .math-formula {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            color: #fff;
+            border-radius: 8px;
+            margin: 4px 0;
+            font-size: 14px;
+            line-height: 1.4;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-note {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        strong {
+            color: var(--text-primary);
+        }
+
+        .toggle-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 12px;
+        }
+
+        .toggle-option {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .toggle-option.active {
+            background: var(--accent);
+            color: white;
+            font-weight: 500;
+        }
+
+        @media (max-width:900px) {
+            .frame {
+                grid-template-columns: 1fr;
+                padding: 16px
+            }
+        }
+
+        .credit {
+            width: 100%;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        /* Estilo para el select principal */
+        select {
+            appearance: none;
+            /* Elimina el estilo por defecto del navegador */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5rem;
+            padding-right: 2.5rem;
+            /* Espacio para el ícono */
+            transition: all 0.2s ease;
+        }
+
+        /* Estilo cuando el select está enfocado */
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Contenedor del select para mejor control */
+        .select-container {
+            position: relative;
+        }
+
+        /* Flecha personalizada (alternativa a background-image) */
+        .select-container::after {
+            content: "⌄";
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            color: var(--muted);
+            pointer-events: none;
+        }
+
+        /* Estilo para las options */
+        option {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 0.5rem;
+        }
+
+        /* Estilo para option:hover (solo funciona en algunos navegadores) */
+        option:hover {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        /* Estilo para option seleccionada */
+        option:checked {
+            background-color: var(--accent);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="frame">
+        <header>
+            <div>
+                <h1>Calculadora de Movimiento Parabólico y Semiparabólico</h1>
+                <p class="lead">Introduce parámetros — verás el paso a paso, fórmulas con MathJax y animación de la
+                    trayectoria.</p>
+            </div>
+        </header>
+
+        <section class="controls card">
+            <div class="toggle-container">
+                <div id="parabolicToggle" class="toggle-option active">Parabólico</div>
+                <div id="semiparabolicToggle" class="toggle-option">Semiparabólico</div>
+            </div>
+
+            <div class="field">
+                <label>Velocidad inicial (<span id="unitLabel">m/s</span>)</label>
+                <div class="row"><input id="v0" type="number" step="any" value="20"><select id="unitSelect"
+                        style="width:110px; margin-left:8px">
+                        <option value="m/s">m/s</option>
+                        <option value="km/h">km/h</option>
+                    </select></div>
+            </div>
+
+            <div class="field" id="angleField">
+                <label>Ángulo de lanzamiento (°)</label>
+                <input id="angle" type="number" step="any" value="45">
+            </div>
+
+            <div class="field">
+                <label>Altura inicial (m)</label>
+                <input id="y0" type="number" step="any" value="0">
+            </div>
+
+            <div class="field row">
+                <div style="flex:1">
+                    <label>Gravedad (m/s²)</label>
+                    <input id="g" type="number" step="any" value="9.8">
+                </div>
+                <div style="width:120px">
+                    <label>Consultar por</label>
+                    <select id="queryType">
+                        <option value="time">Tiempo (s)</option>
+                        <option value="distance">Distancia x (m)</option>
+                        <option value="height">Altura y (m)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="field" id="queryValueField">
+                <label id="queryLabel">Tiempo (s)</label>
+                <input id="queryValue" type="number" step="any" value="1">
+            </div>
+
+            <div class="actions">
+                <button id="compute">Calcular</button>
+                <button class="alt" id="reset">Reiniciar</button>
+                <button class="alt" id="playPause">▶ Animar</button>
+            </div>
+
+            <div style="margin-top:10px" class="small">Nota: todos los cálculos se muestran con 3 decimales de
+                precisión. Cambia entre parabólico y semiparabólico según necesites.</div>
+        </section>
+
+        <section class="right">
+            <div class="card">
+                <canvas id="trajCanvas" width="800" height="360"></canvas>
+            </div>
+
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+                    <strong>Resultados</strong>
+                    <div class="small">Precisión: 3 decimales</div>
+                </div>
+
+                <div class="outputs">
+                    <div>
+                        <div class="small">Altura máxima (m)</div>
+                        <div id="hMax" class="formula">—</div>
+                    </div>
+                    <div>
+                        <div class="small">Alcance horizontal (m)</div>
+                        <div id="range" class="formula">—</div>
+                    </div>
+                    <div>
+                        <div class="small">Tiempo total de vuelo (s)</div>
+                        <div id="tTotal" class="formula">—</div>
+                    </div>
+                    <div>
+                        <div class="small">Velocidad en t consultado (m/s)</div>
+                        <div id="vAt" class="formula">—</div>
+                    </div>
+                    <div id="vAtMaxHeightContainer">
+                        <div class="small">Velocidad en altura máxima (m/s)</div>
+                        <div id="vAtMaxHeight" class="formula">—</div>
+                    </div>
+                    <div id="impactAngleContainer">
+                        <div class="small">Ángulo de impacto (°)</div>
+                        <div id="impactAngle" class="formula">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <strong>Paso a paso</strong>
+                <div id="steps" style="margin-top:8px; font-size:14px"></div>
+            </div>
+
+            <div class="card footer-note">Consejo: en modo semiparabólico, el ángulo se fija en 0° (horizontal). Todos
+                los cálculos se ajustan automáticamente.</div>
+        </section>
+        <div class="credit">
+            <p>By Deimar Yepes</p>
+        </div>
+    </div>
+
+    <script>
+        // --- Helpers ---
+        function toRad(deg) { return deg * Math.PI / 180 }
+        function toDeg(rad) { return rad * 180 / Math.PI }
+        function roundSmart(x) {
+            if (!isFinite(x)) return x
+            return Number(x.toFixed(3))
+        }
+
+        function parseNumber(id) { return parseFloat(document.getElementById(id).value) }
+
+        // DOM refs
+        const v0El = document.getElementById('v0'), angleEl = document.getElementById('angle'), gEl = document.getElementById('g'), y0El = document.getElementById('y0');
+        const computeBtn = document.getElementById('compute'), resetBtn = document.getElementById('reset');
+        const hMaxEl = document.getElementById('hMax'), rangeEl = document.getElementById('range'), tTotalEl = document.getElementById('tTotal'), stepsEl = document.getElementById('steps');
+        const trajCanvas = document.getElementById('trajCanvas'), ctx = trajCanvas.getContext('2d');
+        const playPauseBtn = document.getElementById('playPause'), unitSelect = document.getElementById('unitSelect'), unitLabel = document.getElementById('unitLabel');
+        const queryType = document.getElementById('queryType'), queryValue = document.getElementById('queryValue'), queryLabel = document.getElementById('queryLabel');
+        const vAtMaxHeightEl = document.getElementById('vAtMaxHeight'), impactAngleEl = document.getElementById('impactAngle');
+        const parabolicToggle = document.getElementById('parabolicToggle'), semiparabolicToggle = document.getElementById('semiparabolicToggle');
+        const angleField = document.getElementById('angleField');
+        const vAtMaxHeightContainer = document.getElementById('vAtMaxHeightContainer'), impactAngleContainer = document.getElementById('impactAngleContainer');
+
+        let animRunning = false, animId = null;
+        let isSemiparabolic = false;
+
+        // Event listeners
+        unitSelect.addEventListener('change', () => { unitLabel.textContent = unitSelect.value; convertInputUnits(); computeAll() })
+        queryType.addEventListener('change', () => {
+            queryLabel.textContent =
+                (queryType.value === 'time') ? 'Tiempo (s)' :
+                    (queryType.value === 'distance') ? 'Distancia x (m)' : 'Altura y (m)';
+            computeAll()
+        })
+        computeBtn.addEventListener('click', computeAll)
+        resetBtn.addEventListener('click', () => {
+            v0El.value = 20; angleEl.value = 45; gEl.value = 9.8; y0El.value = 0;
+            unitSelect.value = 'm/s'; unitLabel.textContent = 'm/s';
+            queryType.value = 'time'; queryLabel.textContent = 'Tiempo (s)';
+            queryValue.value = 1;
+            isSemiparabolic = false;
+            updateToggleUI();
+            computeAll();
+        })
+        playPauseBtn.addEventListener('click', () => {
+            animRunning = !animRunning;
+            playPauseBtn.textContent = animRunning ? '⏸ Pausar' : '▶ Animar';
+            if (animRunning) animateProjectile();
+            else cancelAnimationFrame(animId)
+        })
+
+        parabolicToggle.addEventListener('click', () => {
+            isSemiparabolic = false;
+            updateToggleUI();
+            computeAll();
+        });
+
+        semiparabolicToggle.addEventListener('click', () => {
+            isSemiparabolic = true;
+            updateToggleUI();
+            computeAll();
+        });
+
+        function updateToggleUI() {
+            if (isSemiparabolic) {
+                parabolicToggle.classList.remove('active');
+                semiparabolicToggle.classList.add('active');
+                angleField.style.display = 'none';
+                vAtMaxHeightContainer.style.display = 'none';
+                impactAngleContainer.style.display = 'none';
+                angleEl.value = 0;
+            } else {
+                parabolicToggle.classList.add('active');
+                semiparabolicToggle.classList.remove('active');
+                angleField.style.display = 'block';
+                vAtMaxHeightContainer.style.display = 'block';
+                impactAngleContainer.style.display = 'block';
+            }
+        }
+
+        function convertInputUnits() {
+            const u = unitSelect.value;
+            let v = parseFloat(v0El.value) || 0;
+            if (u === 'km/h') {
+                if (unitLabel.textContent === 'm/s') v0El.value = (v * 3.6).toFixed(3);
+            } else {
+                if (unitLabel.textContent === 'km/h') v0El.value = (v / 3.6).toFixed(3);
+            }
+        }
+
+        // --- Physics calculations ---
+        function computePhysics() {
+            const unit = unitSelect.value;
+            let v0 = parseFloat(v0El.value) || 0;
+            if (unit === 'km/h') v0 = v0 / 3.6;
+            const angleDeg = isSemiparabolic ? 0 : parseFloat(angleEl.value) || 0;
+            const g = Math.abs(parseFloat(gEl.value)) || 9.81;
+            const y0 = parseFloat(y0El.value) || 0;
+
+            const theta = toRad(angleDeg);
+
+            const v0x = v0 * Math.cos(theta);
+            const v0y = v0 * Math.sin(theta);
+
+            if (isSemiparabolic) {
+                // Semiparabolic movement (horizontal launch)
+                const tTotal = Math.sqrt(2 * y0 / g);
+                const range = v0x * tTotal;
+                const hMax = y0; // Maximum height is the initial height
+
+                return {
+                    v0, angleDeg, g, y0, theta, v0x, v0y,
+                    tUp: 0,
+                    tDown: tTotal,
+                    tTotal,
+                    hMax,
+                    range,
+                    vAtMaxHeight: v0x,
+                    impactAngle: toDeg(Math.atan(g * tTotal / v0x))
+                };
+            } else {
+                // Full parabolic movement
+                // Time to reach maximum height
+                const tUp = v0y / g;
+
+                // Time to fall from maximum height to ground
+                const hMax = y0 + (v0y * v0y) / (2 * g);
+                const tDown = Math.sqrt(2 * hMax / g);
+
+                // Total flight time (up + down)
+                const tTotal = tUp + tDown;
+
+                // Horizontal range
+                const range = v0x * tTotal;
+
+                // Velocity at maximum height (only horizontal component)
+                const vAtMaxHeight = v0x;
+
+                // Impact angle (arctan of final vertical/horizontal velocity)
+                const impactAngle = toDeg(Math.atan((v0y + g * tDown) / v0x));
+
+                return {
+                    v0, angleDeg, g, y0, theta, v0x, v0y, tUp, tDown, tTotal, hMax, range, vAtMaxHeight, impactAngle
+                };
+            }
+        }
+
+        function formatSI(x) {
+            if (x === null || x === undefined || !isFinite(x)) return '—';
+            return roundSmart(x);
+        }
+
+        function buildSteps(ph, query) {
+            const { v0, angleDeg, g, y0, theta, v0x, v0y, tUp, tDown, tTotal, hMax, range, vAtMaxHeight, impactAngle } = ph;
+            const lines = [];
+
+            lines.push(`<div class="small">Tipo de movimiento: ${isSemiparabolic ? 'Semiparabólico (horizontal)' : 'Parabólico'}</div>`);
+            lines.push('<div class="small">Datos:</div>');
+            lines.push(`<div class="math-formula">$$v_0 = ${formatSI(v0)}\\,\\mathrm{m/s}\\quad \\theta = ${formatSI(angleDeg)}^\\circ\\quad g = ${formatSI(g)}\\,\\mathrm{m/s^2}\\quad y_0 = ${formatSI(y0)}\\,\\mathrm{m}$$</div>`);
+
+            lines.push('<div class="small" style="margin-top:6px">Componentes de la velocidad inicial:</div>');
+            lines.push(`<div class="math-formula">$$v_{0x} = v_0 \\cos\\theta = ${formatSI(v0)}\\cos(${formatSI(angleDeg)}^\\circ) = ${formatSI(v0x)}\\,\\mathrm{m/s}$$</div>`);
+
+            if (!isSemiparabolic) {
+                lines.push(`<div class="math-formula">$$v_{0y} = v_0 \\sin\\theta = ${formatSI(v0)}\\sin(${formatSI(angleDeg)}^\\circ) = ${formatSI(v0y)}\\,\\mathrm{m/s}$$</div>`);
+            } else {
+                lines.push(`<div class="math-formula">$$v_{0y} = 0\\,\\mathrm{m/s} \\quad \\text{(movimiento semiparabólico)}$$</div>`);
+            }
+
+            if (!isSemiparabolic) {
+                lines.push('<div class="small" style="margin-top:6px">Tiempo hasta la altura máxima:</div>');
+                lines.push(`<div class="math-formula">$$t_{\\text{subida}} = \\frac{v_{0y}}{g} = \\frac{${formatSI(v0y)}}{${formatSI(g)}} = ${formatSI(tUp)}\\,\\mathrm{s}$$</div>`);
+            }
+
+            lines.push('<div class="small">Altura máxima:</div>');
+            if (isSemiparabolic) {
+                lines.push(`<div class="math-formula">$$h_{\\max} = y_0 = ${formatSI(hMax)}\\,\\mathrm{m} \\quad \\text{(altura inicial)}$$</div>`);
+            } else {
+                lines.push(`<div class="math-formula">$$h_{\\max} = y_0 + \\frac{v_{0y}^2}{2g} = ${formatSI(y0)} + \\frac{(${formatSI(v0y)})^2}{2 \\times ${formatSI(g)}} = ${formatSI(hMax)}\\,\\mathrm{m}$$</div>`);
+            }
+
+            lines.push('<div class="small">Tiempo de caída:</div>');
+            if (isSemiparabolic) {
+                lines.push(`<div class="math-formula">$$t_{\\text{caída}} = \\sqrt{\\frac{2 y_0}{g}} = \\sqrt{\\frac{2 \\times ${formatSI(y0)}}{${formatSI(g)}}} = ${formatSI(tDown)}\\,\\mathrm{s}$$</div>`);
+            } else {
+                lines.push(`<div class="math-formula">$$t_{\\text{bajada}} = \\sqrt{\\frac{2 h_{\\max}}{g}} = \\sqrt{\\frac{2 \\times ${formatSI(hMax)}}{${formatSI(g)}}} = ${formatSI(tDown)}\\,\\mathrm{s}$$</div>`);
+            }
+
+            lines.push('<div class="small">Tiempo total de vuelo:</div>');
+            if (isSemiparabolic) {
+                lines.push(`<div class="math-formula">$$T = t_{\\text{caída}} = ${formatSI(tTotal)}\\,\\mathrm{s}$$</div>`);
+            } else {
+                lines.push(`<div class="math-formula">$$T = t_{\\text{subida}} + t_{\\text{bajada}} = ${formatSI(tUp)} + ${formatSI(tDown)} = ${formatSI(tTotal)}\\,\\mathrm{s}$$</div>`);
+            }
+
+            lines.push('<div class="small">Alcance horizontal:</div>');
+            lines.push(`<div class="math-formula">$$R = v_{0x} T = ${formatSI(v0x)} \\times ${formatSI(tTotal)} = ${formatSI(range)}\\,\\mathrm{m}$$</div>`);
+
+            if (!isSemiparabolic) {
+                lines.push('<div class="small">Velocidad en altura máxima:</div>');
+                lines.push(`<div class="math-formula">$$v_{\\text{alt.max}} = v_{0x} = ${formatSI(vAtMaxHeight)}\\,\\mathrm{m/s}$$</div>`);
+
+                lines.push('<div class="small">Ángulo de impacto:</div>');
+                lines.push(`<div class="math-formula">$$\\phi = \\arctan\\left(\\frac{v_{0y} + g t_{\\text{bajada}}}{v_{0x}}\\right) = \\arctan\\left(\\frac{${formatSI(v0y)} + ${formatSI(g)} \\times ${formatSI(tDown)}}{${formatSI(v0x)}}\\right) = ${formatSI(impactAngle)}^\\circ$$</div>`);
+            } else {
+                lines.push('<div class="small">Ángulo de impacto:</div>');
+                lines.push(`<div class="math-formula">$$\\phi = \\arctan\\left(\\frac{g t_{\\text{caída}}}{v_{0x}}\\right) = \\arctan\\left(\\frac{${formatSI(g)} \\times ${formatSI(tDown)}}{${formatSI(v0x)}}\\right) = ${formatSI(impactAngle)}^\\circ$$</div>`);
+            }
+
+            if (query) {
+                if (query.type === 'time') {
+                    const t = query.value;
+                    const x = v0x * t;
+                    const y = y0 + v0y * t - 0.5 * g * t * t;
+                    const vx = v0x;
+                    const vy = v0y - g * t;
+                    const v = Math.hypot(vx, vy);
+
+                    lines.push('<div class="small" style="margin-top:6px">Posición en el tiempo solicitado:</div>');
+                    lines.push(`<div class="math-formula">$$t = ${formatSI(t)}\\,\\mathrm{s}$$</div>`);
+                    lines.push(`<div class="math-formula">$$x(t) = v_{0x} t = ${formatSI(v0x)} \\times ${formatSI(t)} = ${formatSI(x)}\\,\\mathrm{m}$$</div>`);
+                    lines.push(`<div class="math-formula">$$y(t) = y_0 + v_{0y} t - \\frac{1}{2} g t^2 = ${formatSI(y0)} + ${formatSI(v0y)} \\times ${formatSI(t)} - 0.5 \\times ${formatSI(g)} \\times ${formatSI(t)}^2 = ${formatSI(y)}\\,\\mathrm{m}$$</div>`);
+                    lines.push(`<div class="math-formula">$$v_x(t) = v_{0x} = ${formatSI(vx)}\\,\\mathrm{m/s}$$</div>`);
+                    lines.push(`<div class="math-formula">$$v_y(t) = v_{0y} - g t = ${formatSI(v0y)} - ${formatSI(g)} \\times ${formatSI(t)} = ${formatSI(vy)}\\,\\mathrm{m/s}$$</div>`);
+                    lines.push(`<div class="math-formula">$$|v(t)| = \\sqrt{v_x(t)^2 + v_y(t)^2} = ${formatSI(v)}\\,\\mathrm{m/s}$$</div>`);
+
+                } else if (query.type === 'distance') {
+                    const xq = query.value;
+                    const t = xq / ph.v0x;
+                    const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
+
+                    lines.push('<div class="small" style="margin-top:6px">Posición para distancia x dada:</div>');
+                    lines.push(`<div class="math-formula">$$x = ${formatSI(xq)}\\,\\mathrm{m}$$</div>`);
+                    lines.push(`<div class="math-formula">$$t = \\frac{x}{v_{0x}} = \\frac{${formatSI(xq)}}{${formatSI(ph.v0x)}} = ${formatSI(t)}\\,\\mathrm{s}$$</div>`);
+                    lines.push(`<div class="math-formula">$$y = y_0 + v_{0y} t - \\frac{1}{2} g t^2 = ${formatSI(ph.y0)} + ${formatSI(ph.v0y)} \\times ${formatSI(t)} - 0.5 \\times ${formatSI(ph.g)} \\times ${formatSI(t)}^2 = ${formatSI(y)}\\,\\mathrm{m}$$</div>`);
+
+                } else if (query.type === 'height') {
+                    const yq = query.value;
+                    // Solve quadratic equation: y = y0 + v0y*t - 0.5*g*t^2
+                    const a = -0.5 * ph.g;
+                    const b = ph.v0y;
+                    const c = ph.y0 - yq;
+                    const discriminant = b * b - 4 * a * c;
+
+                    if (discriminant >= 0) {
+                        const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                        const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+                        const validTimes = [t1, t2].filter(t => t >= 0 && t <= ph.tTotal);
+
+                        if (validTimes.length > 0) {
+                            lines.push('<div class="small" style="margin-top:6px">Tiempo(s) para alcanzar la altura solicitada:</div>');
+                            lines.push(`<div class="math-formula">$$y = ${formatSI(yq)}\\,\\mathrm{m}$$</div>`);
+
+                            validTimes.forEach(t => {
+                                const x = ph.v0x * t;
+                                lines.push(`<div class="math-formula">$$t = ${formatSI(t)}\\,\\mathrm{s} \\quad (x = ${formatSI(x)}\\,\\mathrm{m})$$</div>`);
+                            });
+
+                            if (validTimes.length === 2 && !isSemiparabolic) {
+                                lines.push('<div class="small">Nota: hay dos tiempos válidos correspondientes al ascenso y descenso.</div>');
+                            }
+                        } else {
+                            lines.push('<div class="small" style="margin-top:6px">La altura solicitada no se alcanza en la trayectoria.</div>');
+                        }
+                    } else {
+                        lines.push('<div class="small" style="margin-top:6px">La altura solicitada no se alcanza en la trayectoria.</div>');
+                    }
+                }
+            }
+
+            return lines.join('\n');
+        }
+
+        function computeAll() {
+            const ph = computePhysics();
+
+            hMaxEl.textContent = formatSI(ph.hMax);
+            rangeEl.textContent = formatSI(ph.range);
+            tTotalEl.textContent = formatSI(ph.tTotal);
+
+            if (!isSemiparabolic) {
+                vAtMaxHeightEl.textContent = formatSI(ph.vAtMaxHeight);
+                impactAngleEl.textContent = formatSI(ph.impactAngle);
+            }
+
+            let qType = queryType.value;
+            let qVal = parseFloat(queryValue.value) || 0;
+            let query = null;
+            if (qType === 'time') query = { type: 'time', value: qVal };
+            else if (qType === 'distance') query = { type: 'distance', value: qVal };
+            else if (qType === 'height') query = { type: 'height', value: qVal };
+
+            stepsEl.innerHTML = buildSteps(ph, query);
+
+            // Re-render MathJax after updating content
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([stepsEl]).catch((err) => console.log('MathJax error:', err));
+            }
+
+            if (qType === 'time') {
+                const t = qVal;
+                const vx = ph.v0x;
+                const vy = ph.v0y - ph.g * t;
+                const v = Math.hypot(vx, vy);
+                document.getElementById('vAt').textContent = formatSI(v);
+            } else if (qType === 'distance') {
+                const t = qVal / ph.v0x;
+                const vx = ph.v0x;
+                const vy = ph.v0y - ph.g * t;
+                const v = Math.hypot(vx, vy);
+                document.getElementById('vAt').textContent = formatSI(v);
+            } else {
+                document.getElementById('vAt').textContent = '—';
+            }
+
+            drawTrajectory(ph);
+        }
+
+        // --- Canvas drawing and animation ---
+        function drawTrajectory(ph) {
+            ctx.clearRect(0, 0, trajCanvas.width, trajCanvas.height);
+
+            const pad = 40;
+            const W = trajCanvas.width, H = trajCanvas.height;
+            const maxX = Math.max(ph.range, 1);
+            const maxY = Math.max(ph.hMax * 1.2, 1);
+            const scaleX = (W - pad * 2) / maxX;
+            const scaleY = (H - pad * 2) / maxY;
+
+            // draw ground
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.fillRect(0, H - pad, W, pad);
+
+            // axis labels
+            ctx.fillStyle = '#f9fafb';
+            ctx.font = '12px Inter, Arial';
+            ctx.fillText('x (m)', W - 50, H - 10);
+            ctx.fillText('y (m)', 10, 20);
+
+            // draw curve
+            ctx.beginPath();
+            for (let i = 0; i <= 100; i++) {
+                const t = (i / 100) * ph.tTotal;
+                const x = ph.v0x * t;
+                const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
+                const cx = pad + x * scaleX;
+                const cy = H - pad - y * scaleY;
+                if (i === 0) ctx.moveTo(cx, cy);
+                else ctx.lineTo(cx, cy);
+            }
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#3b82f6';
+            ctx.stroke();
+
+            // draw launch point
+            ctx.beginPath();
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2;
+            ctx.arc(pad, H - pad - ph.y0 * scaleY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // draw range marker
+            const rangeX = pad + ph.range * scaleX;
+            const rangeY = H - pad;
+            ctx.beginPath();
+            ctx.moveTo(rangeX, rangeY);
+            ctx.lineTo(rangeX, rangeY - 8);
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            if (!isSemiparabolic) {
+                // draw max height marker
+                const maxHeightX = pad + (ph.v0x * ph.tUp) * scaleX;
+                const maxHeightY = H - pad - ph.hMax * scaleY;
+                ctx.beginPath();
+                ctx.moveTo(maxHeightX - 8, maxHeightY);
+                ctx.lineTo(maxHeightX + 8, maxHeightY);
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.stroke();
+            }
+        }
+
+        function animateProjectile() {
+            cancelAnimationFrame(animId);
+            const ph = computePhysics();
+            const pad = 40;
+            const W = trajCanvas.width, H = trajCanvas.height;
+            const maxX = Math.max(ph.range, 1);
+            const maxY = Math.max(ph.hMax * 1.2, 1);
+            const scaleX = (W - pad * 2) / maxX;
+            const scaleY = (H - pad * 2) / maxY;
+            let start = null;
+
+            function step(ts) {
+                if (!start) start = ts;
+                const elapsed = (ts - start) / 1000;
+                let t = elapsed % ph.tTotal;
+
+                drawTrajectory(ph);
+
+                const x = ph.v0x * t;
+                const y = ph.y0 + ph.v0y * t - 0.5 * ph.g * t * t;
+                const cx = pad + x * scaleX;
+                const cy = H - pad - y * scaleY;
+
+                // draw projectile
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(59, 130, 246, 1)';
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.lineWidth = 2.5;
+                ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // info bubble
+                ctx.fillStyle = '#f9fafb';
+                ctx.font = '12px Inter, Arial';
+                ctx.fillText('t=' + roundSmart(t) + ' s', cx + 10, cy - 10);
+
+                if (animRunning) {
+                    animId = requestAnimationFrame(step);
+                }
+            }
+
+            animId = requestAnimationFrame(step);
+        }
+
+        // Initial computation
+        setTimeout(() => computeAll(), 100); // Small delay to ensure MathJax is loaded
+
+        // Live updates when inputs change
+        ['input', 'change'].forEach(ev => {
+            [v0El, angleEl, gEl, y0El, queryValue].forEach(el =>
+                el.addEventListener(ev, () => computeAll())
+            );
+        });
+
+        // Resize canvas to devicePixelRatio for crispness
+        function fixCanvasDPR() {
+            const dpr = window.devicePixelRatio || 1;
+            trajCanvas.width = Math.floor(trajCanvas.clientWidth * dpr);
+            trajCanvas.height = Math.floor(trajCanvas.clientHeight * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            computeAll();
+        }
+
+        window.addEventListener('resize', fixCanvasDPR);
+        fixCanvasDPR();
+    </script>
+</body>
+
+</html>
