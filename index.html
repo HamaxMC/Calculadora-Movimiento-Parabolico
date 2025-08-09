@@ -313,6 +313,72 @@
             background-color: var(--accent);
             color: white;
         }
+
+        /* ===== SCROLLBAR PERSONALIZADA ===== */
+        /* Para navegadores WebKit (Chrome, Safari, Edge) */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+            /* Color del track */
+            border-radius: 10px;
+            margin: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.6);
+            /* Color del thumb usando --accent */
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+            transition: all 0.3s ease;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.8);
+            /* Color al hover */
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: transparent;
+            /* Esquina entre scroll vertical/horizontal */
+        }
+
+        /* Para Firefox */
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(59, 130, 246, 0.6) rgba(15, 23, 42, 0.5);
+        }
+
+        /* Estilo especial para contenedores con scroll */
+        .scroll-container {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(59, 130, 246, 0.4) transparent;
+        }
+
+        /* Aplicar a elementos específicos */
+        .card {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(59, 130, 246, 0.4) rgba(255, 255, 255, 0.05);
+        }
+
+        /* Ajuste para el contenedor de pasos */
+        #steps {
+            overflow-y: auto;
+            padding-right: 8px;
+            margin-right: -4px;
+        }
+
+        #steps::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #steps::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.7);
+        }
     </style>
 </head>
 
